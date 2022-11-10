@@ -1,15 +1,20 @@
 package com.comphenix.protocol.reflect.accessors;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
-
 import com.comphenix.protocol.reflect.ExactReflection;
 import com.comphenix.protocol.reflect.FuzzyReflection;
 import com.google.common.base.Joiner;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+
 public final class Accessors {
+	private static final HashMap<Field, FieldAccessor> fieldAccessorCache = new HashMap<>();
+	private static final HashMap<Method, MethodAccessor> methodAccessorCache = new HashMap<>();
+	private static final HashMap<Constructor<?>, ConstructorAccessor> constructorAccessorCache = new HashMap<>();
+
 	/**
 	 * Represents a field accessor that synchronizes access to the underlying field.
 	 * @author Kristian
@@ -103,10 +108,12 @@ public final class Accessors {
 	 * @return The field accessor.
 	 */
 	public static FieldAccessor getFieldAccessor(final Field field, boolean forceAccess) {
-		field.setAccessible(true);
-		return new DefaultFieldAccessor(field);
+		return fieldAccessorCache.computeIfAbsent(field, fieldKey -> {
+			fieldKey.setAccessible(true);
+			return new DefaultFieldAccessor(fieldKey);
+		});
 	}
-	
+
 	/**
 	 * Retrieve a field accessor for a field with the given name and equivalent type, or NULL.
 	 * @param clazz - the declaration class.
@@ -259,8 +266,10 @@ public final class Accessors {
 	 * @return The method accessor.
 	 */
 	public static MethodAccessor getMethodAccessor(final Method method, boolean forceAccess) {
-		method.setAccessible(forceAccess);
-		return new DefaultMethodAccessor(method);
+		return methodAccessorCache.computeIfAbsent(method, methodKey -> {
+			methodKey.setAccessible(forceAccess);
+			return new DefaultMethodAccessor(methodKey);
+		});
 	}
 
 	/**
@@ -289,8 +298,10 @@ public final class Accessors {
 	 * @return The method accessor.
 	 */
 	public static ConstructorAccessor getConstructorAccessor(final Constructor<?> constructor) {
-		constructor.setAccessible(true); // let us in even if we are not allowed to
-		return new DefaultConstrutorAccessor(constructor);
+		return constructorAccessorCache.computeIfAbsent(constructor, constructorKey -> {
+			constructorKey.setAccessible(true); // let us in even if we are not allowed to
+			return new DefaultConstrutorAccessor(constructorKey);
+		});
 	}
 	
 	// Seal this class
