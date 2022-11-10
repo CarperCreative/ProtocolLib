@@ -22,6 +22,10 @@ public class MinecraftGenerator {
     private static final MethodAccessor NON_NULL_LIST_CREATE;
     // fast util mappings for paper relocation
     private static final Map<Class<?>, Constructor<?>> FAST_MAP_CONSTRUCTORS;
+    /**
+     * Marks that an OpenHashMap variant for the given fastutils Map was not found to prevent computeIfAbsent attempting any future lookups.
+     */
+    private static final Constructor<?> FAST_MAP_NULL_CONSTRUCTOR_MARKER = Object.class.getConstructors()[0];
 
     static {
         try {
@@ -52,7 +56,7 @@ public class MinecraftGenerator {
                     }
                 }
                 return DEFAULT_ENTITY_TYPES;
-            } else if (type.isAssignableFrom(Map.class)) {
+            } else if (Map.class.isAssignableFrom(type)) {
                 Constructor<?> ctor = FAST_MAP_CONSTRUCTORS.computeIfAbsent(type, __ -> {
                     try {
                         String name = type.getCanonicalName();
@@ -60,9 +64,9 @@ public class MinecraftGenerator {
                             return Class.forName(name.substring(name.length() - 3) + "OpenHashMap").getConstructor();
                         }
                     } catch (Exception ignored) {}
-                    return null;
+                    return FAST_MAP_NULL_CONSTRUCTOR_MARKER;
                 });
-                if (ctor != null) {
+                if (ctor != null && ctor != FAST_MAP_NULL_CONSTRUCTOR_MARKER) {
                     try {
                         return ctor.newInstance();
                     } catch (ReflectiveOperationException ignored) {}
